@@ -4,6 +4,7 @@ import { IPC_CHANNELS } from '../shared/constants/ipc';
 import type { BridgeState } from '../shared/types/session';
 import { listPhysicalDisplays } from './display/displayService';
 import { VirtualDisplayManager } from './display/virtualDisplayManager';
+import { configureGpuStartup, getGpuStatus } from './gpu/gpuService';
 import { registerIpcHandlers } from './ipc/registerHandlers';
 import { FileLogger } from './logging/logger';
 import {
@@ -21,8 +22,12 @@ let selectedAddress = '';
 const logFilePath = app.isPackaged
   ? path.join(app.getPath('userData'), 'log.txt')
   : path.resolve(process.cwd(), 'log.txt');
+const gpuConfigPath = app.isPackaged
+  ? path.join(app.getPath('userData'), 'gpu-config.json')
+  : path.resolve(process.cwd(), 'gpu-config.json');
 const logger = new FileLogger(logFilePath);
 logger.rotateIfExceeds();
+configureGpuStartup(gpuConfigPath, logger);
 
 const sessionManager = new SessionManager();
 
@@ -113,6 +118,7 @@ function createMainWindow(): BrowserWindow {
 }
 
 void app.whenReady().then(async () => {
+  const gpuStatus = await getGpuStatus(gpuConfigPath);
   logger.info('main', 'ScreenBridge starting', {
     version: app.getVersion(),
     platform: process.platform,
@@ -120,6 +126,7 @@ void app.whenReady().then(async () => {
     sessionType: process.env.XDG_SESSION_TYPE ?? 'unknown',
     electron: process.versions.electron,
     node: process.versions.node,
+    gpu: gpuStatus,
     logFile: logger.getFilePath(),
   });
 
@@ -156,6 +163,7 @@ void app.whenReady().then(async () => {
     sessionManager,
     localServer,
     virtualDisplayManager,
+    gpuConfigPath,
     emitStateUpdate: emitBridgeStateUpdate,
     logger,
   });

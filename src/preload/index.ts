@@ -7,6 +7,7 @@ import type {
   VirtualDisplayState,
   VirtualDisplaySupport,
 } from '../shared/types/display';
+import type { GpuPreferenceMode, GpuStatus } from '../shared/types/gpu';
 import type { LogEntryInput } from '../shared/types/logging';
 import type { BridgeState } from '../shared/types/session';
 import type { OutboundHostSignal, RoutedClientSignal } from '../shared/types/signaling';
@@ -19,6 +20,9 @@ export interface ScreenBridgeApi {
   getVirtualDisplayState: () => Promise<VirtualDisplayState>;
   createVirtualDisplay: (resolution: VirtualDisplayResolution) => Promise<VirtualDisplayState>;
   destroyVirtualDisplay: () => Promise<VirtualDisplayState>;
+  getGpuStatus: () => Promise<GpuStatus>;
+  setGpuPreference: (mode: GpuPreferenceMode) => Promise<GpuStatus>;
+  relaunchApp: () => Promise<void>;
   setSelectedInterface: (address: string) => Promise<void>;
   setPinEnabled: (enabled: boolean) => Promise<void>;
   regeneratePin: () => Promise<void>;
@@ -52,6 +56,9 @@ const api: ScreenBridgeApi = {
   createVirtualDisplay: (resolution) =>
     ipcRenderer.invoke(IPC_CHANNELS.CREATE_VIRTUAL_DISPLAY, resolution),
   destroyVirtualDisplay: () => ipcRenderer.invoke(IPC_CHANNELS.DESTROY_VIRTUAL_DISPLAY),
+  getGpuStatus: () => ipcRenderer.invoke(IPC_CHANNELS.GET_GPU_STATUS),
+  setGpuPreference: (mode) => ipcRenderer.invoke(IPC_CHANNELS.SET_GPU_PREFERENCE, mode),
+  relaunchApp: () => ipcRenderer.invoke(IPC_CHANNELS.RELAUNCH_APP),
   setSelectedInterface: (address) =>
     ipcRenderer.invoke(IPC_CHANNELS.SET_SELECTED_INTERFACE, address),
   setPinEnabled: (enabled) => ipcRenderer.invoke(IPC_CHANNELS.SET_PIN_ENABLED, enabled),
