@@ -8,7 +8,7 @@ ScreenBridge is organized into five strict layers so business logic, IPC contrac
 - `src/main/` — Electron main process:
   - `network/` — Local IPv4 interface discovery (`networkInfo.ts`) and QR generation (`qrService.ts`).
   - `server/` — Pure `SessionManager` state machine (`sessionManager.ts`) and `LocalServer` HTTP + WebSocket signaling server (`localServer.ts`).
-  - `display/` — `desktopCapturer` / `screen` integration (`displayService.ts`), OS virtual display capability reporting (`virtualDisplay.ts`), and GNOME Wayland virtual display lifecycle (`virtualDisplayManager.ts` + `scripts/gnome_virtual_display.py`).
+  - `display/` — `desktopCapturer` / `screen` integration (`displayService.ts`), OS virtual display capability reporting (`virtualDisplay.ts`), GNOME Wayland virtual display lifecycle (`virtualDisplayManager.ts` + `scripts/gnome_virtual_display.py`), and monitor layout persistence/restoration (`displayLayoutManager.ts` + `scripts/gnome_display_layout.py`).
   - `gpu/` — NVIDIA detection via `nvidia-smi`, Chromium GPU flags, and PRIME offload configuration (`gpuService.ts`).
   - `logging/` — Persistent structured file logger writing to `log.txt` (`logger.ts`).
   - `ipc/` — Typed IPC handler registration (`registerHandlers.ts`).

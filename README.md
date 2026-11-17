@@ -10,6 +10,7 @@ Turn any device with a modern web browser (tablet, smartphone, secondary laptop,
 - **Multi-Device Support**: Stream to multiple connected browsers simultaneously and disconnect individual devices anytime.
 - **Receiver Controls**: Fullscreen mode, aspect-ratio fit modes (`contain` / `cover` / `fill`), horizontal mirror toggle, and live stream resolution indicator.
 - **Software Virtual Extended Display (GNOME Wayland)**: Create a software extended monitor via `org.gnome.Mutter.ScreenCast` + PipeWire (`scripts/gnome_virtual_display.py`) without needing a physical dummy plug.
+- **Display Layout Memory (GNOME Wayland)**: Save monitor positions (`display-layout.json`) and automatically restore the virtual display's coordinates across sessions via `org.gnome.Mutter.DisplayConfig`.
 - **NVIDIA GPU & PRIME Offload**: Detects NVIDIA GPUs via `nvidia-smi`, enables Chromium GPU rasterization/zero-copy flags, and supports NVIDIA PRIME render offload (`pnpm start:nvidia` or UI toggle).
 - **Persistent Diagnostics (`log.txt`)**: Logs main, server, IPC, renderer, WebRTC, and receiver events to `log.txt` for easier debugging.
 - **Wayland & X11 Friendly**: Uses Electron's `desktopCapturer` with automatic fallback to `getDisplayMedia` (XDG Desktop Portal / PipeWire on Wayland).
