@@ -7,10 +7,12 @@ import type {
   VirtualDisplayState,
   VirtualDisplaySupport,
 } from '@shared/types/display';
+import type { GpuStatus } from '@shared/types/gpu';
 import type { BridgeState } from '@shared/types/session';
 import { ConnectionCard } from './components/ConnectionCard';
 import { DeviceList } from './components/DeviceList';
 import { DisplayGuide } from './components/DisplayGuide';
+import { GpuCard } from './components/GpuCard';
 import { SourcePicker } from './components/SourcePicker';
 import { useHostStreaming } from './hooks/useHostStreaming';
 
@@ -20,6 +22,7 @@ export function App() {
   const [displays, setDisplays] = useState<PhysicalDisplay[]>([]);
   const [virtualSupport, setVirtualSupport] = useState<VirtualDisplaySupport | null>(null);
   const [virtualDisplayState, setVirtualDisplayState] = useState<VirtualDisplayState | null>(null);
+  const [gpuStatus, setGpuStatus] = useState<GpuStatus | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<QualityPresetId>('balanced');
 
   const refreshSources = useCallback(async () => {
@@ -29,18 +32,20 @@ export function App() {
 
   useEffect(() => {
     void (async () => {
-      const [state, initialSources, initialDisplays, support, vState] = await Promise.all([
+      const [state, initialSources, initialDisplays, support, vState, gpu] = await Promise.all([
         window.screenBridge.getBridgeState(),
         window.screenBridge.listCaptureSources(),
         window.screenBridge.listDisplays(),
         window.screenBridge.getVirtualDisplayStatus(),
         window.screenBridge.getVirtualDisplayState(),
+        window.screenBridge.getGpuStatus(),
       ]);
       setBridgeState(state);
       setSources(initialSources);
       setDisplays(initialDisplays);
       setVirtualSupport(support);
       setVirtualDisplayState(vState);
+      setGpuStatus(gpu);
     })();
 
     const unsubState = window.screenBridge.onStateUpdated((nextState) => {
@@ -128,6 +133,17 @@ export function App() {
               await refreshSources();
             }}
           />
+
+          {gpuStatus && (
+            <GpuCard
+              status={gpuStatus}
+              onChangeMode={async (mode) => {
+                const next = await window.screenBridge.setGpuPreference(mode);
+                setGpuStatus(next);
+              }}
+              onRelaunch={() => window.screenBridge.relaunchApp()}
+            />
+          )}
         </div>
 
         <div className="lg:col-span-7">

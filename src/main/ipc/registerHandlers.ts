@@ -1,12 +1,14 @@
-import { ipcMain } from 'electron';
+import { app, ipcMain } from 'electron';
 import { IPC_CHANNELS } from '../../shared/constants/ipc';
 import type { VirtualDisplayResolution } from '../../shared/types/display';
+import type { GpuPreferenceMode } from '../../shared/types/gpu';
 import type { LogEntryInput } from '../../shared/types/logging';
 import type { OutboundHostSignal } from '../../shared/types/signaling';
 import type { BridgeState } from '../../shared/types/session';
 import { listCaptureSources, listPhysicalDisplays } from '../display/displayService';
 import { getVirtualDisplaySupport } from '../display/virtualDisplay';
 import type { VirtualDisplayManager } from '../display/virtualDisplayManager';
+import { getGpuStatus, saveGpuPreference } from '../gpu/gpuService';
 import type { FileLogger } from '../logging/logger';
 import type { LocalServer } from '../server/localServer';
 import type { SessionManager } from '../server/sessionManager';
@@ -17,6 +19,7 @@ export interface HandlerDependencies {
   sessionManager: SessionManager;
   localServer: LocalServer;
   virtualDisplayManager: VirtualDisplayManager;
+  gpuConfigPath: string;
   emitStateUpdate: () => Promise<void>;
   logger: FileLogger;
 }
@@ -54,6 +57,28 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
 
   ipcMain.handle(IPC_CHANNELS.DESTROY_VIRTUAL_DISPLAY, async () => {
     return deps.virtualDisplayManager.destroy();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GET_GPU_STATUS, async () => {
+    return getGpuStatus(deps.gpuConfigPath);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SET_GPU_PREFERENCE, async (_event, mode: GpuPreferenceMode) => {
+    saveGpuPreference(deps.gpuConfigPath, mode);
+    deps.logger.info('gpu', 'Saved GPU preference mode', { mode });
+    return getGpuStatus(deps.gpuConfigPath);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.RELAUNCH_APP, async () => {
+    const currentMode = (await getGpuStatus(deps.gpuConfigPath)).preferenceMode;
+    deps.logger.info('gpu', 'Relaunching ScreenBridge to apply GPU mode', { currentMode });
+    if (currentMode === 'nvidia-offload' && process.platform === 'linux') {
+      process.env.__NV_PRIME_RENDER_OFFLOAD = '1';
+      process.env.__GLX_VENDOR_LIBRARY_NAME = 'nvidia';
+      process.env.__VK_LAYER_NV_optimus = 'NVIDIA_only';
+    }
+    app.relaunch();
+    app.exit(0);
   });
 
   ipcMain.handle(IPC_CHANNELS.SET_SELECTED_INTERFACE, async (_event, address: string) => {
