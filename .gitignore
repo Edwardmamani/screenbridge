@@ -6,5 +6,6 @@ coverage/
 log.txt
 log.txt.prev
 gpu-config.json
+display-layout.json
 .env
 .env.*

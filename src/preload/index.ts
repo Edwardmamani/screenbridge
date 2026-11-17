@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { IPC_CHANNELS } from '../shared/constants/ipc';
 import type {
   CaptureSource,
+  DisplayLayoutStatus,
   PhysicalDisplay,
   VirtualDisplayResolution,
   VirtualDisplayState,
@@ -20,6 +21,11 @@ export interface ScreenBridgeApi {
   getVirtualDisplayState: () => Promise<VirtualDisplayState>;
   createVirtualDisplay: (resolution: VirtualDisplayResolution) => Promise<VirtualDisplayState>;
   destroyVirtualDisplay: () => Promise<VirtualDisplayState>;
+  getDisplayLayoutStatus: () => Promise<DisplayLayoutStatus>;
+  saveDisplayLayout: () => Promise<DisplayLayoutStatus>;
+  applyDisplayLayout: () => Promise<DisplayLayoutStatus>;
+  clearDisplayLayout: () => Promise<DisplayLayoutStatus>;
+  setAutoRestoreLayout: (enabled: boolean) => Promise<DisplayLayoutStatus>;
   getGpuStatus: () => Promise<GpuStatus>;
   setGpuPreference: (mode: GpuPreferenceMode) => Promise<GpuStatus>;
   relaunchApp: () => Promise<void>;
@@ -56,6 +62,12 @@ const api: ScreenBridgeApi = {
   createVirtualDisplay: (resolution) =>
     ipcRenderer.invoke(IPC_CHANNELS.CREATE_VIRTUAL_DISPLAY, resolution),
   destroyVirtualDisplay: () => ipcRenderer.invoke(IPC_CHANNELS.DESTROY_VIRTUAL_DISPLAY),
+  getDisplayLayoutStatus: () => ipcRenderer.invoke(IPC_CHANNELS.GET_DISPLAY_LAYOUT_STATUS),
+  saveDisplayLayout: () => ipcRenderer.invoke(IPC_CHANNELS.SAVE_DISPLAY_LAYOUT),
+  applyDisplayLayout: () => ipcRenderer.invoke(IPC_CHANNELS.APPLY_DISPLAY_LAYOUT),
+  clearDisplayLayout: () => ipcRenderer.invoke(IPC_CHANNELS.CLEAR_DISPLAY_LAYOUT),
+  setAutoRestoreLayout: (enabled) =>
+    ipcRenderer.invoke(IPC_CHANNELS.SET_AUTO_RESTORE_LAYOUT, enabled),
   getGpuStatus: () => ipcRenderer.invoke(IPC_CHANNELS.GET_GPU_STATUS),
   setGpuPreference: (mode) => ipcRenderer.invoke(IPC_CHANNELS.SET_GPU_PREFERENCE, mode),
   relaunchApp: () => ipcRenderer.invoke(IPC_CHANNELS.RELAUNCH_APP),
