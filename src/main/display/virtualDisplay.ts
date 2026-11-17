@@ -11,13 +11,29 @@ export function getVirtualDisplaySupport(
   const sessionType = env.XDG_SESSION_TYPE ?? (platform === 'linux' ? 'unknown' : 'native');
 
   if (platform === 'linux' && sessionType === 'wayland') {
+    const desktop = (env.XDG_CURRENT_DESKTOP ?? '').toLowerCase();
+    if (desktop.includes('gnome')) {
+      return {
+        supported: true,
+        platform,
+        sessionType,
+        mode: 'native-virtual',
+        summary:
+          'GNOME Wayland supports software virtual displays via Mutter ScreenCast + PipeWire.',
+        instructions: [
+          'Click "Create Virtual Display" below to add a software extended monitor.',
+          'Once created, select the new screen in "Share Screen or Window" (or System Picker).',
+        ],
+      };
+    }
+
     return {
       supported: false,
       platform,
       sessionType,
       mode: 'window-fallback',
       summary:
-        'Wayland/GNOME restricts programmatic virtual monitors without compositor privileges.',
+        'This Wayland compositor restricts programmatic virtual monitors without compositor privileges.',
       instructions: [
         'Option A (Recommended): Plug in an inexpensive HDMI or DisplayPort dummy plug to create a hardware-backed extended display.',
         'Option B: Share a single application window in ScreenBridge to use your tablet or second device as a dedicated workspace.',

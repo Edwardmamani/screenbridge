@@ -4,6 +4,7 @@ import type {
   CaptureSource,
   PhysicalDisplay,
   QualityPresetId,
+  VirtualDisplayState,
   VirtualDisplaySupport,
 } from '@shared/types/display';
 import type { BridgeState } from '@shared/types/session';
@@ -18,6 +19,7 @@ export function App() {
   const [sources, setSources] = useState<CaptureSource[]>([]);
   const [displays, setDisplays] = useState<PhysicalDisplay[]>([]);
   const [virtualSupport, setVirtualSupport] = useState<VirtualDisplaySupport | null>(null);
+  const [virtualDisplayState, setVirtualDisplayState] = useState<VirtualDisplayState | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<QualityPresetId>('balanced');
 
   const refreshSources = useCallback(async () => {
@@ -27,16 +29,18 @@ export function App() {
 
   useEffect(() => {
     void (async () => {
-      const [state, initialSources, initialDisplays, support] = await Promise.all([
+      const [state, initialSources, initialDisplays, support, vState] = await Promise.all([
         window.screenBridge.getBridgeState(),
         window.screenBridge.listCaptureSources(),
         window.screenBridge.listDisplays(),
         window.screenBridge.getVirtualDisplayStatus(),
+        window.screenBridge.getVirtualDisplayState(),
       ]);
       setBridgeState(state);
       setSources(initialSources);
       setDisplays(initialDisplays);
       setVirtualSupport(support);
+      setVirtualDisplayState(vState);
     })();
 
     const unsubState = window.screenBridge.onStateUpdated((nextState) => {
@@ -44,15 +48,23 @@ export function App() {
     });
     const unsubDisplays = window.screenBridge.onDisplaysUpdated((nextDisplays) => {
       setDisplays(nextDisplays);
+      void refreshSources();
+    });
+    const unsubVirtual = window.screenBridge.onVirtualDisplayUpdated((nextVirtual) => {
+      setVirtualDisplayState(nextVirtual);
     });
 
     return () => {
       unsubState();
       unsubDisplays();
+      unsubVirtual();
     };
-  }, []);
+  }, [refreshSources]);
 
   const streaming = useHostStreaming(bridgeState?.clients ?? []);
+  const waitingClientsCount = (bridgeState?.clients ?? []).filter(
+    (c) => c.status === 'approved',
+  ).length;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -101,7 +113,21 @@ export function App() {
             onDisconnect={(id) => void window.screenBridge.disconnectClient(id)}
           />
 
-          <DisplayGuide displays={displays} virtualSupport={virtualSupport} />
+          <DisplayGuide
+            displays={displays}
+            virtualSupport={virtualSupport}
+            virtualDisplayState={virtualDisplayState}
+            onCreateVirtualDisplay={async (resolution) => {
+              const next = await window.screenBridge.createVirtualDisplay(resolution);
+              setVirtualDisplayState(next);
+              await refreshSources();
+            }}
+            onDestroyVirtualDisplay={async () => {
+              const next = await window.screenBridge.destroyVirtualDisplay();
+              setVirtualDisplayState(next);
+              await refreshSources();
+            }}
+          />
         </div>
 
         <div className="lg:col-span-7">
@@ -109,6 +135,7 @@ export function App() {
             sources={sources}
             selectedPreset={selectedPreset}
             isStreaming={streaming.isStreaming}
+            waitingClientsCount={waitingClientsCount}
             activeSourceLabel={streaming.activeSourceLabel}
             errorMessage={streaming.errorMessage}
             onChangePreset={setSelectedPreset}

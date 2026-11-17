@@ -3,6 +3,8 @@ import { IPC_CHANNELS } from '../shared/constants/ipc';
 import type {
   CaptureSource,
   PhysicalDisplay,
+  VirtualDisplayResolution,
+  VirtualDisplayState,
   VirtualDisplaySupport,
 } from '../shared/types/display';
 import type { LogEntryInput } from '../shared/types/logging';
@@ -14,6 +16,9 @@ export interface ScreenBridgeApi {
   listCaptureSources: () => Promise<CaptureSource[]>;
   listDisplays: () => Promise<PhysicalDisplay[]>;
   getVirtualDisplayStatus: () => Promise<VirtualDisplaySupport>;
+  getVirtualDisplayState: () => Promise<VirtualDisplayState>;
+  createVirtualDisplay: (resolution: VirtualDisplayResolution) => Promise<VirtualDisplayState>;
+  destroyVirtualDisplay: () => Promise<VirtualDisplayState>;
   setSelectedInterface: (address: string) => Promise<void>;
   setPinEnabled: (enabled: boolean) => Promise<void>;
   regeneratePin: () => Promise<void>;
@@ -25,6 +30,7 @@ export interface ScreenBridgeApi {
   onStateUpdated: (listener: (state: BridgeState) => void) => () => void;
   onClientSignal: (listener: (payload: RoutedClientSignal) => void) => () => void;
   onDisplaysUpdated: (listener: (displays: PhysicalDisplay[]) => void) => () => void;
+  onVirtualDisplayUpdated: (listener: (state: VirtualDisplayState) => void) => () => void;
 }
 
 function subscribe<T>(channel: string, listener: (payload: T) => void): () => void {
@@ -42,6 +48,10 @@ const api: ScreenBridgeApi = {
   listCaptureSources: () => ipcRenderer.invoke(IPC_CHANNELS.LIST_CAPTURE_SOURCES),
   listDisplays: () => ipcRenderer.invoke(IPC_CHANNELS.LIST_DISPLAYS),
   getVirtualDisplayStatus: () => ipcRenderer.invoke(IPC_CHANNELS.GET_VIRTUAL_DISPLAY_STATUS),
+  getVirtualDisplayState: () => ipcRenderer.invoke(IPC_CHANNELS.GET_VIRTUAL_DISPLAY_STATE),
+  createVirtualDisplay: (resolution) =>
+    ipcRenderer.invoke(IPC_CHANNELS.CREATE_VIRTUAL_DISPLAY, resolution),
+  destroyVirtualDisplay: () => ipcRenderer.invoke(IPC_CHANNELS.DESTROY_VIRTUAL_DISPLAY),
   setSelectedInterface: (address) =>
     ipcRenderer.invoke(IPC_CHANNELS.SET_SELECTED_INTERFACE, address),
   setPinEnabled: (enabled) => ipcRenderer.invoke(IPC_CHANNELS.SET_PIN_ENABLED, enabled),
@@ -54,6 +64,7 @@ const api: ScreenBridgeApi = {
   onStateUpdated: (listener) => subscribe(IPC_CHANNELS.STATE_UPDATED, listener),
   onClientSignal: (listener) => subscribe(IPC_CHANNELS.CLIENT_SIGNAL, listener),
   onDisplaysUpdated: (listener) => subscribe(IPC_CHANNELS.DISPLAYS_UPDATED, listener),
+  onVirtualDisplayUpdated: (listener) => subscribe(IPC_CHANNELS.VIRTUAL_DISPLAY_UPDATED, listener),
 };
 
 contextBridge.exposeInMainWorld('screenBridge', api);

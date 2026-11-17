@@ -9,6 +9,7 @@ interface SourcePickerProps {
   sources: CaptureSource[];
   selectedPreset: QualityPresetId;
   isStreaming: boolean;
+  waitingClientsCount: number;
   activeSourceLabel: string | null;
   errorMessage: string | null;
   onChangePreset: (preset: QualityPresetId) => void;
@@ -22,6 +23,7 @@ export function SourcePicker({
   sources,
   selectedPreset,
   isStreaming,
+  waitingClientsCount,
   activeSourceLabel,
   errorMessage,
   onChangePreset,
@@ -99,6 +101,13 @@ export function SourcePicker({
       {errorMessage && (
         <div className="mt-3 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
           {errorMessage}
+        </div>
+      )}
+
+      {!isStreaming && waitingClientsCount > 0 && (
+        <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+          {waitingClientsCount} approved device{waitingClientsCount === 1 ? ' is' : 's are'} waiting
+          for video — click a screen below or <strong>System Picker</strong> to start sharing.
         </div>
       )}
 
