@@ -91,3 +91,27 @@ export const VIRTUAL_DISPLAY_PRESETS: Array<{ label: string; width: number; heig
   { label: '1280 × 720 (HD)', width: 1280, height: 720 },
   { label: '2560 × 1440 (QHD)', width: 2560, height: 1440 },
 ];
+
+export interface SavedMonitorLayoutEntry {
+  connector: string;
+  x: number;
+  y: number;
+  scale: number;
+  transform: number;
+  primary: boolean;
+}
+
+export interface SavedDisplayLayout {
+  savedAt: number;
+  autoRestore: boolean;
+  monitors: SavedMonitorLayoutEntry[];
+}
+
+export interface DisplayLayoutStatus {
+  supported: boolean;
+  hasSavedLayout: boolean;
+  autoRestore: boolean;
+  savedMonitorCount: number;
+  savedAt: number | null;
+  lastError?: string;
+}

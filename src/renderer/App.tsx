@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Cast } from 'lucide-react';
 import type {
   CaptureSource,
+  DisplayLayoutStatus,
   PhysicalDisplay,
   QualityPresetId,
   VirtualDisplayState,
@@ -22,6 +23,7 @@ export function App() {
   const [displays, setDisplays] = useState<PhysicalDisplay[]>([]);
   const [virtualSupport, setVirtualSupport] = useState<VirtualDisplaySupport | null>(null);
   const [virtualDisplayState, setVirtualDisplayState] = useState<VirtualDisplayState | null>(null);
+  const [layoutStatus, setLayoutStatus] = useState<DisplayLayoutStatus | null>(null);
   const [gpuStatus, setGpuStatus] = useState<GpuStatus | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<QualityPresetId>('balanced');
 
@@ -32,19 +34,22 @@ export function App() {
 
   useEffect(() => {
     void (async () => {
-      const [state, initialSources, initialDisplays, support, vState, gpu] = await Promise.all([
-        window.screenBridge.getBridgeState(),
-        window.screenBridge.listCaptureSources(),
-        window.screenBridge.listDisplays(),
-        window.screenBridge.getVirtualDisplayStatus(),
-        window.screenBridge.getVirtualDisplayState(),
-        window.screenBridge.getGpuStatus(),
-      ]);
+      const [state, initialSources, initialDisplays, support, vState, layout, gpu] =
+        await Promise.all([
+          window.screenBridge.getBridgeState(),
+          window.screenBridge.listCaptureSources(),
+          window.screenBridge.listDisplays(),
+          window.screenBridge.getVirtualDisplayStatus(),
+          window.screenBridge.getVirtualDisplayState(),
+          window.screenBridge.getDisplayLayoutStatus(),
+          window.screenBridge.getGpuStatus(),
+        ]);
       setBridgeState(state);
       setSources(initialSources);
       setDisplays(initialDisplays);
       setVirtualSupport(support);
       setVirtualDisplayState(vState);
+      setLayoutStatus(layout);
       setGpuStatus(gpu);
     })();
 
@@ -122,6 +127,7 @@ export function App() {
             displays={displays}
             virtualSupport={virtualSupport}
             virtualDisplayState={virtualDisplayState}
+            layoutStatus={layoutStatus}
             onCreateVirtualDisplay={async (resolution) => {
               const next = await window.screenBridge.createVirtualDisplay(resolution);
               setVirtualDisplayState(next);
@@ -131,6 +137,18 @@ export function App() {
               const next = await window.screenBridge.destroyVirtualDisplay();
               setVirtualDisplayState(next);
               await refreshSources();
+            }}
+            onSaveLayout={async () => {
+              setLayoutStatus(await window.screenBridge.saveDisplayLayout());
+            }}
+            onApplyLayout={async () => {
+              setLayoutStatus(await window.screenBridge.applyDisplayLayout());
+            }}
+            onClearLayout={async () => {
+              setLayoutStatus(await window.screenBridge.clearDisplayLayout());
+            }}
+            onToggleAutoRestore={async (enabled) => {
+              setLayoutStatus(await window.screenBridge.setAutoRestoreLayout(enabled));
             }}
           />
 

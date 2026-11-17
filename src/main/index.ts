@@ -3,6 +3,7 @@ import { app, BrowserWindow, desktopCapturer, screen, session } from 'electron';
 import { IPC_CHANNELS } from '../shared/constants/ipc';
 import type { BridgeState } from '../shared/types/session';
 import { listPhysicalDisplays } from './display/displayService';
+import { DisplayLayoutManager } from './display/displayLayoutManager';
 import { VirtualDisplayManager } from './display/virtualDisplayManager';
 import { configureGpuStartup, getGpuStatus } from './gpu/gpuService';
 import { registerIpcHandlers } from './ipc/registerHandlers';
@@ -25,6 +26,9 @@ const logFilePath = app.isPackaged
 const gpuConfigPath = app.isPackaged
   ? path.join(app.getPath('userData'), 'gpu-config.json')
   : path.resolve(process.cwd(), 'gpu-config.json');
+const layoutConfigPath = app.isPackaged
+  ? path.join(app.getPath('userData'), 'display-layout.json')
+  : path.resolve(process.cwd(), 'display-layout.json');
 const logger = new FileLogger(logFilePath);
 logger.rotateIfExceeds();
 configureGpuStartup(gpuConfigPath, logger);
@@ -32,6 +36,12 @@ configureGpuStartup(gpuConfigPath, logger);
 const sessionManager = new SessionManager();
 
 const helperScriptPath = path.resolve(__dirname, '../../../scripts/gnome_virtual_display.py');
+const layoutHelperScriptPath = path.resolve(__dirname, '../../../scripts/gnome_display_layout.py');
+const displayLayoutManager = new DisplayLayoutManager(
+  layoutConfigPath,
+  layoutHelperScriptPath,
+  logger,
+);
 const virtualDisplayManager = new VirtualDisplayManager(helperScriptPath, logger, (vState) => {
   mainWindow?.webContents.send(IPC_CHANNELS.VIRTUAL_DISPLAY_UPDATED, vState);
 });
@@ -163,6 +173,7 @@ void app.whenReady().then(async () => {
     sessionManager,
     localServer,
     virtualDisplayManager,
+    displayLayoutManager,
     gpuConfigPath,
     emitStateUpdate: emitBridgeStateUpdate,
     logger,
