@@ -6,6 +6,9 @@ export const IPC_CHANNELS = {
   LIST_CAPTURE_SOURCES: 'bridge:list-capture-sources',
   LIST_DISPLAYS: 'bridge:list-displays',
   GET_VIRTUAL_DISPLAY_STATUS: 'bridge:get-virtual-display-status',
+  GET_VIRTUAL_DISPLAY_STATE: 'bridge:get-virtual-display-state',
+  CREATE_VIRTUAL_DISPLAY: 'bridge:create-virtual-display',
+  DESTROY_VIRTUAL_DISPLAY: 'bridge:destroy-virtual-display',
   SET_SELECTED_INTERFACE: 'bridge:set-selected-interface',
   SET_PIN_ENABLED: 'bridge:set-pin-enabled',
   REGENERATE_PIN: 'bridge:regenerate-pin',
@@ -19,4 +22,5 @@ export const IPC_CHANNELS = {
   STATE_UPDATED: 'bridge:state-updated',
   CLIENT_SIGNAL: 'bridge:client-signal',
   DISPLAYS_UPDATED: 'bridge:displays-updated',
+  VIRTUAL_DISPLAY_UPDATED: 'bridge:virtual-display-updated',
 } as const;

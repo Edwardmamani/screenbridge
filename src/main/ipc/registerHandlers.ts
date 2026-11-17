@@ -1,10 +1,12 @@
 import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '../../shared/constants/ipc';
+import type { VirtualDisplayResolution } from '../../shared/types/display';
 import type { LogEntryInput } from '../../shared/types/logging';
 import type { OutboundHostSignal } from '../../shared/types/signaling';
 import type { BridgeState } from '../../shared/types/session';
 import { listCaptureSources, listPhysicalDisplays } from '../display/displayService';
 import { getVirtualDisplaySupport } from '../display/virtualDisplay';
+import type { VirtualDisplayManager } from '../display/virtualDisplayManager';
 import type { FileLogger } from '../logging/logger';
 import type { LocalServer } from '../server/localServer';
 import type { SessionManager } from '../server/sessionManager';
@@ -14,6 +16,7 @@ export interface HandlerDependencies {
   setSelectedAddress: (address: string) => void;
   sessionManager: SessionManager;
   localServer: LocalServer;
+  virtualDisplayManager: VirtualDisplayManager;
   emitStateUpdate: () => Promise<void>;
   logger: FileLogger;
 }
@@ -36,6 +39,21 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
 
   ipcMain.handle(IPC_CHANNELS.GET_VIRTUAL_DISPLAY_STATUS, async () => {
     return getVirtualDisplaySupport();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GET_VIRTUAL_DISPLAY_STATE, async () => {
+    return deps.virtualDisplayManager.getState();
+  });
+
+  ipcMain.handle(
+    IPC_CHANNELS.CREATE_VIRTUAL_DISPLAY,
+    async (_event, resolution: VirtualDisplayResolution) => {
+      return deps.virtualDisplayManager.create(resolution);
+    },
+  );
+
+  ipcMain.handle(IPC_CHANNELS.DESTROY_VIRTUAL_DISPLAY, async () => {
+    return deps.virtualDisplayManager.destroy();
   });
 
   ipcMain.handle(IPC_CHANNELS.SET_SELECTED_INTERFACE, async (_event, address: string) => {

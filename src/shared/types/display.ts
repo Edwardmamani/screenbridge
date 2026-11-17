@@ -69,3 +69,25 @@ export interface VirtualDisplaySupport {
   summary: string;
   instructions: string[];
 }
+
+export interface VirtualDisplayResolution {
+  width: number;
+  height: number;
+}
+
+export interface VirtualDisplayState {
+  active: boolean;
+  supported: boolean;
+  backend: 'gnome-wayland' | 'unsupported';
+  width: number;
+  height: number;
+  nodeId?: number;
+  error?: string;
+}
+
+export const VIRTUAL_DISPLAY_PRESETS: Array<{ label: string; width: number; height: number }> = [
+  { label: '1920 × 1080 (Full HD)', width: 1920, height: 1080 },
+  { label: '1600 × 900 (HD+)', width: 1600, height: 900 },
+  { label: '1280 × 720 (HD)', width: 1280, height: 720 },
+  { label: '2560 × 1440 (QHD)', width: 2560, height: 1440 },
+];

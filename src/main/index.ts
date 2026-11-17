@@ -3,6 +3,7 @@ import { app, BrowserWindow, desktopCapturer, screen, session } from 'electron';
 import { IPC_CHANNELS } from '../shared/constants/ipc';
 import type { BridgeState } from '../shared/types/session';
 import { listPhysicalDisplays } from './display/displayService';
+import { VirtualDisplayManager } from './display/virtualDisplayManager';
 import { registerIpcHandlers } from './ipc/registerHandlers';
 import { FileLogger } from './logging/logger';
 import {
@@ -24,6 +25,11 @@ const logger = new FileLogger(logFilePath);
 logger.rotateIfExceeds();
 
 const sessionManager = new SessionManager();
+
+const helperScriptPath = path.resolve(__dirname, '../../../scripts/gnome_virtual_display.py');
+const virtualDisplayManager = new VirtualDisplayManager(helperScriptPath, logger, (vState) => {
+  mainWindow?.webContents.send(IPC_CHANNELS.VIRTUAL_DISPLAY_UPDATED, vState);
+});
 
 const receiverDistDir = path.resolve(__dirname, '../../../dist/receiver');
 
@@ -149,6 +155,7 @@ void app.whenReady().then(async () => {
     },
     sessionManager,
     localServer,
+    virtualDisplayManager,
     emitStateUpdate: emitBridgeStateUpdate,
     logger,
   });
@@ -179,5 +186,6 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  void virtualDisplayManager.destroy();
   void localServer.stop();
 });
