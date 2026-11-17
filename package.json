@@ -1,0 +1,51 @@
+{
+  "name": "screenbridge",
+  "version": "0.1.0",
+  "description": "Share or extend your desktop screen to any device with a web browser over LAN using WebRTC.",
+  "main": "dist/main/main/index.js",
+  "author": "Edward M.Z",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+    "dev": "concurrently -k -n renderer,receiver,main \"vite --config vite.renderer.config.ts\" \"vite build --watch --config vite.receiver.config.ts\" \"wait-on http://localhost:5173 && tsc -p tsconfig.main.json && electron .\"",
+    "build": "pnpm build:main && pnpm build:renderer && pnpm build:receiver",
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:renderer": "vite build --config vite.renderer.config.ts",
+    "build:receiver": "vite build --config vite.receiver.config.ts",
+    "start": "pnpm build && electron .",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.main.json --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "lucide-react": "^0.475.0",
+    "qrcode": "^1.5.4",
+    "ws": "^8.18.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.21.0",
+    "@tailwindcss/vite": "^4.0.9",
+    "@types/node": "^22.13.5",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@types/ws": "^8.5.14",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "electron": "^34.2.0",
+    "eslint": "^9.21.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "prettier": "^3.5.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^4.0.9",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.25.0",
+    "vite": "^6.2.0",
+    "vitest": "^3.0.7",
+    "wait-on": "^8.0.2"
+  }
+}
