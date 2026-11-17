@@ -3,5 +3,7 @@ dist/
 coverage/
 .DS_Store
 *.log
+log.txt
+log.txt.prev
 .env
 .env.*

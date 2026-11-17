@@ -8,6 +8,7 @@ import {
   type RoutedClientSignal,
   type ServerToClientSignal,
 } from '../../shared/types/signaling';
+import type { FileLogger } from '../logging/logger';
 import type { SessionManager } from './sessionManager';
 
 const MIME_TYPES: Record<string, string> = {
@@ -39,6 +40,7 @@ export class LocalServer {
     private readonly receiverDistDir: string,
     private readonly sessionManager: SessionManager,
     private readonly callbacks: LocalServerCallbacks,
+    private readonly logger?: FileLogger,
   ) {}
 
   getPort(): number {
@@ -60,6 +62,7 @@ export class LocalServer {
     });
 
     this.actualPort = await this.listenWithFallback(preferredPort);
+    this.logger?.info('server', `HTTP & WebSocket server listening on 0.0.0.0:${this.actualPort}`);
     return this.actualPort;
   }
 
@@ -174,6 +177,10 @@ export class LocalServer {
 
     this.sockets.set(clientId, socket);
     this.sessionManager.registerConnection(clientId, remoteIp, userAgent);
+    this.logger?.info('server', `WebSocket client connected (${clientId})`, {
+      ip: remoteIp,
+      userAgent,
+    });
 
     this.sendToClient(clientId, {
       type: 'welcome',
@@ -185,6 +192,7 @@ export class LocalServer {
     socket.on('message', (rawData) => {
       const signal = parseClientSignal(rawData.toString());
       if (!signal) {
+        this.logger?.warn('server', `Malformed signaling message from ${clientId}`);
         this.sendToClient(clientId, {
           type: 'error',
           message: 'Malformed signaling message',
@@ -192,9 +200,25 @@ export class LocalServer {
         return;
       }
 
+      if (signal.type === 'client-log') {
+        this.logger?.log(
+          signal.level,
+          `receiver:${clientId.slice(0, 8)}`,
+          signal.message,
+          signal.details,
+        );
+        return;
+      }
+
       if (signal.type === 'join') {
         const result = this.sessionManager.handleJoin(clientId, signal.deviceName, signal.pin);
         if (!result) return;
+
+        this.logger?.info('server', `Client join request (${clientId})`, {
+          deviceName: signal.deviceName,
+          status: result.initialStatus,
+          reason: result.reason,
+        });
 
         this.sendToClient(clientId, {
           type: 'auth-status',
@@ -222,7 +246,12 @@ export class LocalServer {
       this.callbacks.onClientSignal({ clientId, signal });
     });
 
+    socket.on('error', (err) => {
+      this.logger?.error('server', `WebSocket error on client ${clientId}`, err);
+    });
+
     socket.on('close', () => {
+      this.logger?.info('server', `WebSocket client disconnected (${clientId})`);
       this.sockets.delete(clientId);
       this.sessionManager.removeClient(clientId);
       this.callbacks.onClientsChanged();

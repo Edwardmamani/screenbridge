@@ -4,6 +4,7 @@ import { IPC_CHANNELS } from '../shared/constants/ipc';
 import type { BridgeState } from '../shared/types/session';
 import { listPhysicalDisplays } from './display/displayService';
 import { registerIpcHandlers } from './ipc/registerHandlers';
+import { FileLogger } from './logging/logger';
 import {
   buildConnectionUrl,
   getLocalNetworkInterfaces,
@@ -16,17 +17,36 @@ import { SessionManager } from './server/sessionManager';
 let mainWindow: BrowserWindow | null = null;
 let selectedAddress = '';
 
+const logFilePath = app.isPackaged
+  ? path.join(app.getPath('userData'), 'log.txt')
+  : path.resolve(process.cwd(), 'log.txt');
+const logger = new FileLogger(logFilePath);
+logger.rotateIfExceeds();
+
 const sessionManager = new SessionManager();
 
 const receiverDistDir = path.resolve(__dirname, '../../../dist/receiver');
 
-const localServer = new LocalServer(receiverDistDir, sessionManager, {
-  onClientsChanged: () => {
-    void emitBridgeStateUpdate();
+const localServer = new LocalServer(
+  receiverDistDir,
+  sessionManager,
+  {
+    onClientsChanged: () => {
+      void emitBridgeStateUpdate();
+    },
+    onClientSignal: (payload) => {
+      mainWindow?.webContents.send(IPC_CHANNELS.CLIENT_SIGNAL, payload);
+    },
   },
-  onClientSignal: (payload) => {
-    mainWindow?.webContents.send(IPC_CHANNELS.CLIENT_SIGNAL, payload);
-  },
+  logger,
+);
+
+process.on('uncaughtException', (err) => {
+  logger.error('main', 'Uncaught exception', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  logger.error('main', 'Unhandled promise rejection', reason);
 });
 
 async function buildBridgeState(): Promise<BridgeState> {
@@ -87,13 +107,33 @@ function createMainWindow(): BrowserWindow {
 }
 
 void app.whenReady().then(async () => {
+  logger.info('main', 'ScreenBridge starting', {
+    version: app.getVersion(),
+    platform: process.platform,
+    arch: process.arch,
+    sessionType: process.env.XDG_SESSION_TYPE ?? 'unknown',
+    electron: process.versions.electron,
+    node: process.versions.node,
+    logFile: logger.getFilePath(),
+  });
+
   // Enable system display picker fallback when getDisplayMedia is used (e.g. Wayland PipeWire).
   session.defaultSession.setDisplayMediaRequestHandler(
     async (_request, callback) => {
-      const sources = await desktopCapturer.getSources({ types: ['screen', 'window'] });
-      if (sources[0]) {
-        callback({ video: sources[0] });
-      } else {
+      try {
+        const sources = await desktopCapturer.getSources({ types: ['screen', 'window'] });
+        if (sources[0]) {
+          logger.info('display', 'setDisplayMediaRequestHandler resolved source', {
+            id: sources[0].id,
+            name: sources[0].name,
+          });
+          callback({ video: sources[0] });
+        } else {
+          logger.warn('display', 'setDisplayMediaRequestHandler found no capture sources');
+          callback({});
+        }
+      } catch (err) {
+        logger.error('display', 'setDisplayMediaRequestHandler failed', err);
         callback({});
       }
     },
@@ -110,9 +150,13 @@ void app.whenReady().then(async () => {
     sessionManager,
     localServer,
     emitStateUpdate: emitBridgeStateUpdate,
+    logger,
   });
 
   mainWindow = createMainWindow();
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    logger.error('renderer', 'Renderer process gone', details);
+  });
 
   const notifyDisplayChanges = () => {
     mainWindow?.webContents.send(IPC_CHANNELS.DISPLAYS_UPDATED, listPhysicalDisplays());

@@ -30,6 +30,12 @@ export type ClientToServerSignal =
     }
   | {
       type: 'request-renegotiate';
+    }
+  | {
+      type: 'client-log';
+      level: 'INFO' | 'WARN' | 'ERROR';
+      message: string;
+      details?: string;
     };
 
 export type ServerToClientSignal =
@@ -75,6 +81,7 @@ const VALID_CLIENT_TYPES = new Set<ClientToServerSignal['type']>([
   'webrtc-answer',
   'webrtc-ice',
   'request-renegotiate',
+  'client-log',
 ]);
 
 /**
@@ -126,6 +133,20 @@ export function parseClientSignal(raw: string): ClientToServerSignal | null {
       }
       case 'request-renegotiate':
         return { type: 'request-renegotiate' };
+      case 'client-log': {
+        if (
+          typeof record.message !== 'string' ||
+          (record.level !== 'INFO' && record.level !== 'WARN' && record.level !== 'ERROR')
+        ) {
+          return null;
+        }
+        return {
+          type: 'client-log',
+          level: record.level,
+          message: record.message.slice(0, 500),
+          details: typeof record.details === 'string' ? record.details.slice(0, 1000) : undefined,
+        };
+      }
       default:
         return null;
     }

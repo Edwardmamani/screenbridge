@@ -13,6 +13,7 @@ export const IPC_CHANNELS = {
   REJECT_CLIENT: 'bridge:reject-client',
   DISCONNECT_CLIENT: 'bridge:disconnect-client',
   SEND_SIGNAL: 'bridge:send-signal',
+  LOG_EVENT: 'bridge:log-event',
 
   // Main -> Renderer push events
   STATE_UPDATED: 'bridge:state-updated',

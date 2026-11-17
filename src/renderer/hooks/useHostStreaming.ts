@@ -83,6 +83,11 @@ export function useHostStreaming(clients: ConnectedClient[]): UseHostStreamingRe
       };
 
       peer.onconnectionstatechange = () => {
+        void window.screenBridge.logEvent({
+          level: peer.connectionState === 'failed' ? 'ERROR' : 'INFO',
+          source: 'webrtc-host',
+          message: `Peer connection state changed (${clientId}): ${peer.connectionState}`,
+        });
         if (peer.connectionState === 'failed' || peer.connectionState === 'closed') {
           closePeer(clientId);
         }
@@ -143,10 +148,22 @@ export function useHostStreaming(clients: ConnectedClient[]): UseHostStreamingRe
           audio: false,
         });
         await attachNewStream(stream, 'System Display Picker');
+        void window.screenBridge.logEvent({
+          level: 'INFO',
+          source: 'webrtc-host',
+          message: 'Started capture via System Display Picker',
+          details: { presetId },
+        });
       } catch (err) {
-        setErrorMessage(
-          err instanceof Error ? err.message : 'Unable to capture screen via system picker.',
-        );
+        const message =
+          err instanceof Error ? err.message : 'Unable to capture screen via system picker.';
+        void window.screenBridge.logEvent({
+          level: 'ERROR',
+          source: 'webrtc-host',
+          message: 'System Display Picker capture failed',
+          details: message,
+        });
+        setErrorMessage(message);
       }
     },
     [attachNewStream],
@@ -171,7 +188,19 @@ export function useHostStreaming(clients: ConnectedClient[]): UseHostStreamingRe
 
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         await attachNewStream(stream, label);
-      } catch {
+        void window.screenBridge.logEvent({
+          level: 'INFO',
+          source: 'webrtc-host',
+          message: `Started capture for source "${label}"`,
+          details: { sourceId, presetId },
+        });
+      } catch (err) {
+        void window.screenBridge.logEvent({
+          level: 'WARN',
+          source: 'webrtc-host',
+          message: `Direct desktopCapturer failed for "${label}", falling back to System Picker`,
+          details: err instanceof Error ? err.message : String(err),
+        });
         // On Wayland/PipeWire, direct desktopCapturer IDs can require the XDG Desktop Portal picker.
         await startSystemPickerCapture(presetId);
       }

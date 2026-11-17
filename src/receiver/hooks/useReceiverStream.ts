@@ -85,6 +85,11 @@ export function useReceiverStream(): UseReceiverStreamReturn {
       };
 
       peer.onconnectionstatechange = () => {
+        sendSignal({
+          type: 'client-log',
+          level: peer.connectionState === 'failed' ? 'ERROR' : 'INFO',
+          message: `Receiver WebRTC state: ${peer.connectionState}`,
+        });
         if (peer.connectionState === 'failed') {
           sendSignal({ type: 'request-renegotiate' });
         }

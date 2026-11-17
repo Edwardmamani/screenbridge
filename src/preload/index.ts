@@ -5,6 +5,7 @@ import type {
   PhysicalDisplay,
   VirtualDisplaySupport,
 } from '../shared/types/display';
+import type { LogEntryInput } from '../shared/types/logging';
 import type { BridgeState } from '../shared/types/session';
 import type { OutboundHostSignal, RoutedClientSignal } from '../shared/types/signaling';
 
@@ -20,6 +21,7 @@ export interface ScreenBridgeApi {
   rejectClient: (clientId: string) => Promise<void>;
   disconnectClient: (clientId: string) => Promise<void>;
   sendSignal: (payload: OutboundHostSignal) => Promise<void>;
+  logEvent: (entry: LogEntryInput) => Promise<void>;
   onStateUpdated: (listener: (state: BridgeState) => void) => () => void;
   onClientSignal: (listener: (payload: RoutedClientSignal) => void) => () => void;
   onDisplaysUpdated: (listener: (displays: PhysicalDisplay[]) => void) => () => void;
@@ -48,6 +50,7 @@ const api: ScreenBridgeApi = {
   rejectClient: (clientId) => ipcRenderer.invoke(IPC_CHANNELS.REJECT_CLIENT, clientId),
   disconnectClient: (clientId) => ipcRenderer.invoke(IPC_CHANNELS.DISCONNECT_CLIENT, clientId),
   sendSignal: (payload) => ipcRenderer.invoke(IPC_CHANNELS.SEND_SIGNAL, payload),
+  logEvent: (entry) => ipcRenderer.invoke(IPC_CHANNELS.LOG_EVENT, entry),
   onStateUpdated: (listener) => subscribe(IPC_CHANNELS.STATE_UPDATED, listener),
   onClientSignal: (listener) => subscribe(IPC_CHANNELS.CLIENT_SIGNAL, listener),
   onDisplaysUpdated: (listener) => subscribe(IPC_CHANNELS.DISPLAYS_UPDATED, listener),

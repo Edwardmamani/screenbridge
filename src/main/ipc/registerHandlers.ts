@@ -1,9 +1,11 @@
 import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '../../shared/constants/ipc';
+import type { LogEntryInput } from '../../shared/types/logging';
 import type { OutboundHostSignal } from '../../shared/types/signaling';
 import type { BridgeState } from '../../shared/types/session';
 import { listCaptureSources, listPhysicalDisplays } from '../display/displayService';
 import { getVirtualDisplaySupport } from '../display/virtualDisplay';
+import type { FileLogger } from '../logging/logger';
 import type { LocalServer } from '../server/localServer';
 import type { SessionManager } from '../server/sessionManager';
 
@@ -13,6 +15,7 @@ export interface HandlerDependencies {
   sessionManager: SessionManager;
   localServer: LocalServer;
   emitStateUpdate: () => Promise<void>;
+  logger: FileLogger;
 }
 
 /**
@@ -53,6 +56,7 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   ipcMain.handle(IPC_CHANNELS.APPROVE_CLIENT, async (_event, clientId: string) => {
     const client = deps.sessionManager.approveClient(clientId);
     if (client) {
+      deps.logger.info('ipc', `Approved client ${clientId}`, { name: client.name });
       deps.localServer.sendToClient(clientId, {
         type: 'auth-status',
         status: 'approved',
@@ -64,6 +68,7 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   ipcMain.handle(IPC_CHANNELS.REJECT_CLIENT, async (_event, clientId: string) => {
     const client = deps.sessionManager.rejectClient(clientId);
     if (client) {
+      deps.logger.info('ipc', `Rejected client ${clientId}`, { name: client.name });
       deps.localServer.sendToClient(clientId, {
         type: 'auth-status',
         status: 'rejected',
@@ -75,11 +80,16 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   });
 
   ipcMain.handle(IPC_CHANNELS.DISCONNECT_CLIENT, async (_event, clientId: string) => {
+    deps.logger.info('ipc', `Disconnected client ${clientId}`);
     deps.localServer.disconnectClient(clientId, 'Disconnected by host');
     await deps.emitStateUpdate();
   });
 
   ipcMain.handle(IPC_CHANNELS.SEND_SIGNAL, async (_event, payload: OutboundHostSignal) => {
     deps.localServer.sendToClient(payload.clientId, payload.signal);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.LOG_EVENT, async (_event, entry: LogEntryInput) => {
+    deps.logger.log(entry.level, entry.source, entry.message, entry.details);
   });
 }
